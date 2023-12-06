@@ -1,92 +1,59 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 advent_of_code::solution!(3);
 
-fn scan_for_nbr(_vect: &[char], _idx: usize) -> u32 {
-    todo!()
-}
-
-fn find_number(vect: &Vec<char>, idx: usize) -> Option<Vec<u32>> {
-    let mut res: Option<Vec<u32>> = None;
-    let mut neighbor: Vec<char> = vec![vect[idx]];
-
-    //No number
-    match (idx, vect.len() - 1) {
-        (0, _) => neighbor.push(vect[idx + 1]),
-        (i, s) if i == s => neighbor.push(vect[idx - 1]),
-        (_, _) => {}
-    }
-    if neighbor.iter().all(|&x| x != '.') {
-        return None;
-    }
-
-    let digit_count = neighbor
-        .iter()
-        .fold(0, |a, c| if c.is_ascii_digit() { a + 1 } else { a });
-
-    // Find number
-    match digit_count {
-        0 => res = Some(vec![scan_for_nbr(vect, idx)]),
-        1 => {
-            match (vect[idx - 1], vect[idx], vect[idx + 1]) {
-                ('.', _, _) => Some(vec![scan_for_nbr(vect, idx)]),
-                (_, _, '.') => Some(vec![scan_for_nbr(vect, idx)]),
-                (_, '.', _) => Some(vec![
-                    scan_for_nbr(vect, idx - 1),
-                    scan_for_nbr(vect, idx + 1),
-                ]),
-                (_, _, _) => panic!("Boom wall2!!!"),
-            };
-        }
-        2 => {
-            let v = match (vect[idx - 1], vect[idx], vect[idx + 1]) {
-                ('.', '.', _) => scan_for_nbr(vect, idx + 1),
-                ('.', v, '.') => v.to_digit(10).expect("Not a number"),
-                (_, '.', '.') => scan_for_nbr(vect, idx - 1),
-                (_, _, _) => panic!("Boom wall!!!"),
-            };
-            res = Some(vec![v])
-        }
-        _ => {}
-    };
-
-    res
-}
-
-fn get_ratio(bloc: &VecDeque<&str>, line: u32) -> u32 {
+fn compute(line: &str, line_counter: u32, xy_values: &HashMap<(u32, u32), u32>) -> u32 {
     let mut result = 0u32;
-    let max_y = bloc[0].len() - 1;
 
     // Build vector for scanning
-    let vector: Vec<char> = bloc[line as usize].chars().collect();
-    let ref_vector: Vec<char> = if line == 0 {
-        bloc[1].chars().collect()
-    } else {
-        bloc[0].chars().collect()
-    };
-    let ref_vector2: Vec<char> = if bloc.len() == 3 {
-        bloc[2].chars().collect()
-    } else {
-        vec!['.'; max_y + 1]
-    };
-
+    let vector: Vec<char> = line.chars().collect();
     for (idx, letter) in vector.iter().enumerate() {
         if letter.eq(&'*') {
-            let num1 = find_number(&ref_vector, idx);
-            let num2 = find_number(&vector, idx);
-            let num3 = find_number(&ref_vector2, idx);
-            match (num1, num2, num3) {
-                (None, Some(a), Some(b)) if a.len() == 1 && b.len() == 1 => result += a[0] * b[0],
-                (Some(a), None, Some(b)) if a.len() == 1 && b.len() == 1 => result += a[0] * b[0],
-                (Some(a), Some(b), None) if a.len() == 1 && b.len() == 1 => result += a[0] * b[0],
-                (None, None, Some(a)) if a.len() == 2 => result += a[0] * a[1],
-                (None, Some(a), None) if a.len() == 2 => result += a[0] * a[1],
-                (Some(a), None, None) if a.len() == 2 => result += a[0] * a[1],
-                (_, _, _) => todo!(),
+            /*
+             * | -1,-1 | 0, -1 | +1, -1 |
+             * | -1,0  |   '*' | +1, 0  |
+             * | -1,+1 | 0, +1 | +1, +1 |
+             */
+            let mut set: HashSet<_> = HashSet::new();
+            let list_number_upper: Vec<&u32> = [
+                xy_values.get(&((idx as u32) - 1, line_counter - 1)),
+                xy_values.get(&((idx as u32), line_counter - 1)),
+                xy_values.get(&((idx as u32) + 1, line_counter - 1)),
+            ]
+            .into_iter()
+            .flatten()
+            .filter(|x| set.insert(*x))
+            .collect();
+
+            let list_number = [
+                xy_values.get(&((idx as u32) - 1, line_counter)),
+                xy_values.get(&((idx as u32) + 1, line_counter)),
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+            set.clear();
+            let list_number_lower = [
+                xy_values.get(&((idx as u32) - 1, line_counter + 1)),
+                xy_values.get(&((idx as u32), line_counter + 1)),
+                xy_values.get(&((idx as u32) + 1, line_counter + 1)),
+            ]
+            .into_iter()
+            .flatten()
+            .filter(|x| set.insert(*x))
+            .collect::<Vec<_>>();
+
+            let mut multi = 1u32;
+            if (list_number_upper.len() + list_number.len() + list_number_lower.len()) == 2 {
+                // println!("{:#?}", list_number);
+                multi *= list_number_upper.into_iter().product::<u32>();
+                multi *= list_number.into_iter().product::<u32>();
+                multi *= list_number_lower.into_iter().product::<u32>();
+                result += multi;
             }
         }
     }
-
     result
 }
 
@@ -186,29 +153,38 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let mut blocs: VecDeque<&str> = VecDeque::new();
-    let result = input.lines().fold(0, |acc, line| match blocs.len() {
-        0 => {
-            blocs.push_back(line);
-            acc
-        }
-        1 => {
-            blocs.push_back(line);
-            acc + get_ratio(&blocs, 0)
-        }
-        2 => {
-            blocs.push_back(line);
-            acc + get_ratio(&blocs, 1)
-        }
-        _ => {
-            blocs.pop_front();
-            blocs.push_back(line);
-            acc + get_ratio(&blocs, 1)
-        }
-    });
+    // Compute coordinate of all numbers
+    let mut xy_value: HashMap<(u32, u32), u32> = HashMap::new();
+    let mut current_number: Option<u32> = None;
+    let mut x_drift = 0u32;
 
-    blocs.pop_front();
-    Some(result + get_ratio(&blocs, 1))
+    for (y, line) in input.lines().enumerate() {
+        for (x, letter) in line.chars().enumerate() {
+            if !letter.is_ascii_digit() {
+                if let Some(v) = current_number {
+                    for shift in 1..=x_drift {
+                        xy_value.insert((x as u32 - shift, y as u32), v);
+                    }
+                }
+                current_number = None;
+                x_drift = 0;
+                continue;
+            }
+
+            // Collect new number
+            current_number = Some(match current_number {
+                None => letter.to_digit(10).expect("Invalid digit"),
+                Some(v) => v * 10 + letter.to_digit(10).expect("Invalid digit"),
+            });
+            x_drift += 1;
+        }
+    }
+
+    let result = input
+        .lines()
+        .enumerate()
+        .fold(0, |acc, (y, line)| acc + compute(line, y as u32, &xy_value));
+    Some(result)
 }
 
 #[cfg(test)]
@@ -225,5 +201,8 @@ mod tests {
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
         assert_eq!(result, Some(467835));
+        // 27743353
+        // 30222892
+        // 82824352
     }
 }
