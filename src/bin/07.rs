@@ -5,10 +5,7 @@
 // 248179786
 
 use lazy_static::lazy_static;
-use std::{
-    collections::HashMap,
-    iter::zip, fmt,
-};
+use std::{collections::HashMap, fmt, iter::zip};
 
 advent_of_code::solution!(7);
 
@@ -30,7 +27,7 @@ lazy_static! {
     ]);
 }
 
-#[derive(Debug,Clone, Eq, PartialEq, Ord, PartialOrd, Copy)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Copy)]
 enum HandType<'a> {
     HighCard(&'a str),
     OnePair(&'a str),
@@ -43,18 +40,17 @@ enum HandType<'a> {
 
 impl fmt::Display for HandType<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {            
+        match self {
             HandType::HighCard(v) => write!(f, "HighCard {}", *v),
             HandType::OnePair(v) => write!(f, "OnePair {}", *v),
             HandType::TwoPair(v) => write!(f, "TwoPair {}", *v),
             HandType::ThreeOfkind(v) => write!(f, "ThreeOfkind {}", *v),
             HandType::FullHouse(v) => write!(f, "FullHouse {}", *v),
             HandType::FourOfkind(v) => write!(f, "FourOfkind {}", *v),
-            HandType::FiveOfkind(v) => write!(f, "FiveOfkind {}", *v),            
+            HandType::FiveOfkind(v) => write!(f, "FiveOfkind {}", *v),
         }
     }
 }
-
 
 fn compare_hands(hand_a: HandType, hand_b: HandType) -> std::cmp::Ordering {
     let (left, right) = match (hand_a, hand_b) {
@@ -72,7 +68,7 @@ fn compare_hands(hand_a: HandType, hand_b: HandType) -> std::cmp::Ordering {
         // (HandType::TwoPair(_), _ ) => return std::cmp::Ordering::Greater,
         // (HandType::OnePair(_), _ ) => return std::cmp::Ordering::Greater,
         // (HandType::HighCard(_), _ ) => return std::cmp::Ordering::Greater,
-        _ => return hand_a.cmp(&hand_b)
+        _ => return hand_a.cmp(&hand_b),
     };
 
     let left = left
