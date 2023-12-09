@@ -7,10 +7,10 @@ advent_of_code::solution!(2);
 fn get_play(play: &str) -> Option<(u32, &str)> {
     let mut parts = play.split_whitespace();
 
-    let number_str = parts.next().unwrap_or_default(); // Tomar la primera palabra o una cadena vacía
+    let number_str = parts.next().unwrap_or_default();
     let number: Result<u32, _> = number_str.parse();
 
-    let word = parts.next().unwrap_or_default(); // Tomar la segunda palabra o una cadena vacía
+    let word = parts.next().unwrap_or_default();
 
     match number {
         Ok(parsed_number) => Some((parsed_number, word)),
@@ -100,13 +100,10 @@ pub fn part_one(input: &str) -> Option<u32> {
 pub fn part_two(input: &str) -> Option<u32> {
     let re_parser_color: Regex = Regex::new(r"(?P<color>\d+ (?:blue|red|green))*").unwrap();
 
-    let sum_power: u32 =
-        input
-            .lines()
-            .fold(0, |acc, line| match power_of_game(line, &re_parser_color) {
-                Some(power) => acc + power,
-                None => acc,
-            });
+    let sum_power: u32 = input
+        .lines()
+        .filter_map(|line| power_of_game(line, &re_parser_color))
+        .sum();
     Some(sum_power)
 }
 

@@ -22,7 +22,10 @@ pub fn read_file(folder: &str, day: Day) -> String {
 /// Helper function that reads a text file to a string.
 pub fn read_file_sub(folder: &str, day: Day, sub: u32) -> String {
     let cwd = env::current_dir().unwrap();
-    let filepath = cwd.join("data").join(folder).join(format!("{day}_{sub}.txt"));
+    let filepath = cwd
+        .join("data")
+        .join(folder)
+        .join(format!("{day}_{sub}.txt"));
     let f = fs::read_to_string(filepath);
     f.expect("could not open input file")
 }
