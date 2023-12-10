@@ -1,31 +1,6 @@
-// Wrong Vqlue
-// 249057120
-// 248409953
-// 245065331
-// 248179786
-
-use lazy_static::lazy_static;
 use std::{collections::HashMap, fmt, iter::zip};
 
 advent_of_code::solution!(7);
-
-lazy_static! {
-    static ref CARD_LABEL: HashMap<char, u32> = HashMap::from([
-        ('A', 14u32),
-        ('K', 13u32),
-        ('Q', 12u32),
-        ('J', 11u32),
-        ('T', 10u32),
-        ('9', 9u32),
-        ('8', 8u32),
-        ('7', 7u32),
-        ('6', 6u32),
-        ('5', 5u32),
-        ('4', 4u32),
-        ('3', 3u32),
-        ('2', 2u32)
-    ]);
-}
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Copy)]
 enum HandType<'a> {
@@ -52,7 +27,11 @@ impl fmt::Display for HandType<'_> {
     }
 }
 
-fn compare_hands(hand_a: HandType, hand_b: HandType) -> std::cmp::Ordering {
+fn compare_hands(
+    hand_a: HandType,
+    hand_b: HandType,
+    card_weight: &HashMap<char, u32>,
+) -> std::cmp::Ordering {
     let (left, right) = match (hand_a, hand_b) {
         (HandType::HighCard(a), HandType::HighCard(b)) => (a, b),
         (HandType::OnePair(a), HandType::OnePair(b)) => (a, b),
@@ -61,23 +40,16 @@ fn compare_hands(hand_a: HandType, hand_b: HandType) -> std::cmp::Ordering {
         (HandType::FullHouse(a), HandType::FullHouse(b)) => (a, b),
         (HandType::FourOfkind(a), HandType::FourOfkind(b)) => (a, b),
         (HandType::FiveOfkind(a), HandType::FiveOfkind(b)) => (a, b),
-        // (HandType::FiveOfkind(_), _ ) => return std::cmp::Ordering::Greater,
-        // (HandType::FourOfkind(_), _ ) => return std::cmp::Ordering::Greater,
-        // (HandType::FullHouse(_), _ ) => return std::cmp::Ordering::Greater,
-        // (HandType::ThreeOfkind(_), _ ) => return std::cmp::Ordering::Greater,
-        // (HandType::TwoPair(_), _ ) => return std::cmp::Ordering::Greater,
-        // (HandType::OnePair(_), _ ) => return std::cmp::Ordering::Greater,
-        // (HandType::HighCard(_), _ ) => return std::cmp::Ordering::Greater,
         _ => return hand_a.cmp(&hand_b),
     };
 
     let left = left
         .chars()
-        .map(|c| CARD_LABEL.get(&c).expect("Invalid card"))
+        .map(|c| card_weight.get(&c).expect("Invalid card"))
         .collect::<Vec<_>>();
     let right = right
         .chars()
-        .map(|c| CARD_LABEL.get(&c).expect("Invalid card"))
+        .map(|c| card_weight.get(&c).expect("Invalid card"))
         .collect::<Vec<_>>();
 
     for (l, r) in zip(left, right) {
@@ -98,9 +70,58 @@ fn is_nth_same_card(map: &HashMap<char, usize>, target_value: usize) -> bool {
     false
 }
 
+fn solve_hand_with_jockers(hand: &str) -> HandType {
+    let mut counter: HashMap<char, usize> = HashMap::new();
+    let mut jockers = 0u32;
+
+    for card in hand.chars() {
+        if card == 'J' {
+            jockers += 1;
+        } else {
+            *counter.entry(card).or_insert(0) += 1;
+        }
+    }
+
+    match jockers {
+        0 => return solve_hand(hand),
+        5 => return HandType::FiveOfkind(hand),
+        _ => {}
+    }
+
+    // Determinate the combination
+    match counter.len() {
+        1 => HandType::FiveOfkind(hand),
+        2 => {
+            // J XXXX   => AABB(2|2) AAAB(3|1)
+            // JJ XXX   => AAB(2|1)
+            // JJJ XX   => AB(1|1)
+            // JJJJ X   => X
+            let three_value = is_nth_same_card(&counter, 3);
+            let double_value = is_nth_same_card(&counter, 2);
+            let uniq_value = is_nth_same_card(&counter, 1);
+
+            match (three_value, double_value, uniq_value) {
+                (false, true, false) => HandType::FullHouse(hand), // 2|2
+                (false, true, true) => HandType::FourOfkind(hand), // 2|1
+                (true, false, true) => HandType::FourOfkind(hand), // 3|1
+                (false, false, true) => HandType::FourOfkind(hand), // 1|1
+                _ => unreachable!("Match 2 groups with jocker"),
+            }
+        }
+        3 => {
+            // J XXXX   => AABC(2|1|1)
+            // JJ XXX   => ABC(1|1|1)
+            // JJJ XX   => X
+            // JJJJ X   => X
+            HandType::ThreeOfkind(hand)
+        }
+        4 => HandType::OnePair(hand),
+        _ => unreachable!("Match Hand type failed"),
+    }
+}
+
 fn solve_hand(hand: &str) -> HandType {
     let mut counter: HashMap<char, usize> = HashMap::new();
-
     for card in hand.chars() {
         *counter.entry(card).or_insert(0) += 1;
     }
@@ -109,14 +130,13 @@ fn solve_hand(hand: &str) -> HandType {
     match counter.len() {
         1 => HandType::FiveOfkind(hand),
         2 => {
-            let full_value = is_nth_same_card(&counter, 4);
+            let four_value = is_nth_same_card(&counter, 4);
             let three_value = is_nth_same_card(&counter, 3);
             let pair_value = is_nth_same_card(&counter, 2);
 
-            match (full_value, three_value, pair_value) {
+            match (four_value, three_value, pair_value) {
                 (true, false, false) => HandType::FourOfkind(hand),
                 (false, true, true) => HandType::FullHouse(hand),
-                (false, false, true) => HandType::ThreeOfkind(hand),
                 _ => unreachable!("Match Hand type Full, Three or Pair"),
             }
         }
@@ -134,6 +154,21 @@ fn solve_hand(hand: &str) -> HandType {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
+    let card_weight: HashMap<char, u32> = HashMap::from([
+        ('A', 14u32),
+        ('K', 13u32),
+        ('Q', 12u32),
+        ('J', 11u32),
+        ('T', 10u32),
+        ('9', 9u32),
+        ('8', 8u32),
+        ('7', 7u32),
+        ('6', 6u32),
+        ('5', 5u32),
+        ('4', 4u32),
+        ('3', 3u32),
+        ('2', 2u32),
+    ]);
     let mut hands: Vec<(HandType, u32)> = input
         .lines()
         .map(|x| {
@@ -144,15 +179,44 @@ pub fn part_one(input: &str) -> Option<u32> {
             )
         })
         .collect();
-    hands.sort_by(|a, b| compare_hands(a.0, b.0));
+    hands.sort_by(|a, b| compare_hands(a.0, b.0, &card_weight));
 
     Some(hands.iter().enumerate().fold(0, |acc, (range, (_, bid))| {
         acc + (range as u32 + 1) * (*bid)
     }))
 }
 
-pub fn part_two(_: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<u32> {
+    let card_weight: HashMap<char, u32> = HashMap::from([
+        ('A', 14u32),
+        ('K', 13u32),
+        ('Q', 12u32),
+        ('T', 10u32),
+        ('9', 9u32),
+        ('8', 8u32),
+        ('7', 7u32),
+        ('6', 6u32),
+        ('5', 5u32),
+        ('4', 4u32),
+        ('3', 3u32),
+        ('2', 2u32),
+        ('J', 1u32),
+    ]);
+    let mut hands: Vec<(HandType, u32)> = input
+        .lines()
+        .map(|x| {
+            let (hand, bid) = x.trim().split_once(' ').expect("Wrong hand");
+            (
+                solve_hand_with_jockers(hand.trim()),
+                bid.trim().parse::<u32>().expect("Wrong bid"),
+            )
+        })
+        .collect();
+    hands.sort_by(|a, b| compare_hands(a.0, b.0, &card_weight));
+
+    Some(hands.iter().enumerate().fold(0, |acc, (range, (_, bid))| {
+        acc + (range as u32 + 1) * (*bid)
+    }))
 }
 
 #[cfg(test)]
@@ -161,48 +225,13 @@ mod tests {
 
     #[test]
     fn test_part_one() {
-        let result = part_one(&advent_of_code::template::read_file("examples", DAY));
+        let result = part_one(&advent_of_code::template::read_file_sub("examples", DAY, 1));
         assert_eq!(result, Some(6440));
     }
 
     #[test]
     fn test_part_two() {
-        let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
-    }
-
-    #[test]
-    fn test_hand() {
-        assert_eq!(
-            compare_hands(solve_hand("AAAAA"), solve_hand("KKKKK")),
-            std::cmp::Ordering::Greater
-        );
-        assert_eq!(
-            compare_hands(solve_hand("AAAAA"), solve_hand("AAAAA")),
-            std::cmp::Ordering::Equal
-        );
-        assert_eq!(
-            compare_hands(solve_hand("2AAAA"), solve_hand("3AAAA")),
-            std::cmp::Ordering::Less
-        );
-
-        assert_eq!(
-            compare_hands(solve_hand("AAA22"), solve_hand("AAA66")),
-            std::cmp::Ordering::Less
-        );
-        assert_eq!(
-            compare_hands(solve_hand("AAK22"), solve_hand("AAK66")),
-            std::cmp::Ordering::Less
-        );
-
-        assert_eq!(
-            compare_hands(solve_hand("AA234"), solve_hand("TTKQ2")),
-            std::cmp::Ordering::Greater
-        );
-
-        assert_eq!(
-            compare_hands(solve_hand("KK677"), solve_hand("KTJJT")),
-            std::cmp::Ordering::Greater
-        );
+        let result = part_two(&advent_of_code::template::read_file_sub("examples", DAY, 2));
+        assert_eq!(result, Some(5905));
     }
 }
