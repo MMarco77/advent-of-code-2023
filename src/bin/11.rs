@@ -12,11 +12,13 @@ pub enum Glyph {
     EmptySpace(u32),
 }
 
-fn interpret(value: char) -> Glyph {
-    match value {
-        '#' => Glyph::Galaxy,
-        '.' => Glyph::EmptySpace(1),
-        _ => unreachable!(),
+impl From<char> for Glyph {
+    fn from(value: char) -> Self {
+        match value {
+            '#' => Glyph::Galaxy,
+            '.' => Glyph::EmptySpace(1),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -124,7 +126,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     let universe = Universe {
         grid: input
             .lines()
-            .map(|line| line.chars().map(interpret).collect::<Vec<_>>())
+            .map(|line| line.chars().map(From::from).collect::<Vec<_>>())
             .collect(),
     };
     // println!("Print universe \n{}", universe);
@@ -149,7 +151,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     let universe = Universe {
         grid: input
             .lines()
-            .map(|line| line.chars().map(interpret).collect::<Vec<_>>())
+            .map(|line| line.chars().map(From::from).collect::<Vec<_>>())
             .collect(),
     };
     // println!("Print universe \n{}", universe);

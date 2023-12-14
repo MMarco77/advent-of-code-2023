@@ -3,30 +3,32 @@ advent_of_code::solution!(12);
 enum Record {
     Operational,
     Damaged,
-    Unknown
+    Unknown,
 }
 
 impl From<char> for Record {
     fn from(value: char) -> Self {
         match value {
-           '.' => Self::Operational,
-           '#' => Self::Damaged,
-           '?' => Self::Unknown,
-           _ => unreachable!(),
+            '.' => Self::Operational,
+            '#' => Self::Damaged,
+            '?' => Self::Unknown,
+            _ => unreachable!(),
         }
     }
 }
 
-fn split_input(input: &str) -> Vec<(Vec<Record>, Vec<u32>)>{
-    input.lines().map(|c| {
-        let (logs, crc) = c.split_once(' ').expect("Invalid record");
-        (
-            logs.chars().map(From::from).collect(), 
-            crc.split(',').filter_map(|c| c.parse().ok() ).collect()
-        )
-    }).collect()
+fn split_input(input: &str) -> Vec<(Vec<Record>, Vec<u32>)> {
+    input
+        .lines()
+        .map(|c| {
+            let (logs, crc) = c.split_once(' ').expect("Invalid record");
+            (
+                logs.chars().map(From::from).collect(),
+                crc.split(',').filter_map(|c| c.parse().ok()).collect(),
+            )
+        })
+        .collect()
 }
-
 
 pub fn part_one(input: &str) -> Option<u32> {
     let records = split_input(input);
@@ -35,7 +37,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     unimplemented!()
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
+pub fn part_two(_: &str) -> Option<u32> {
     None
 }
 
