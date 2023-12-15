@@ -1,3 +1,9 @@
+// 27646
+// Convert line to value ('.':0, '#': 1)
+// Windows slice + reinjection du hashset.
+// par ligne, inversion, ligne.
+//
+
 use std::{
     cmp::min,
     collections::HashSet,

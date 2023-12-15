@@ -1,3 +1,5 @@
+// soduku solve  algorithm
+
 advent_of_code::solution!(12);
 #[derive(Debug)]
 enum Record {
